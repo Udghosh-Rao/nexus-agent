@@ -53,7 +53,11 @@ app.include_router(finance_router)
 app.include_router(monitoring_router)
 
 # UI Routes
-static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static")
+static_dir = os.path.join(os.getcwd(), "static")
+if not os.path.exists(static_dir):
+    # Fallback to relative path if cwd is not root
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "static")
+
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
@@ -62,4 +66,12 @@ async def read_index():
     index_path = os.path.join(static_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return {"message": "Nexus Agent API is running. UI index.html not found."}
+    return {
+        "message": "Nexus Agent API is running. UI index.html not found.",
+        "debug": {
+            "static_dir": static_dir,
+            "exists": os.path.exists(static_dir),
+            "cwd": os.getcwd(),
+            "file": __file__
+        }
+    }
