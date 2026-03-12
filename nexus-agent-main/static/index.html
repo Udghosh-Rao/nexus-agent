@@ -91,7 +91,7 @@ runBtn.onclick = async () => {
         const response = await fetch('/agent/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: query, secret: '' })
+            body: JSON.stringify({ prompt: query, secret: 'i love you' })
         });
         const data = await response.json();
         if (data.status === 'success') {
