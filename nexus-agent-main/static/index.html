@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Agent Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen">
+    <nav class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="bg-blue-600 p-2 rounded-lg"><i class="fas fa-robot text-white text-xl"></i></div>
+            <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Nexus Agent</h1>
+        </div>
+        <div class="flex items-center space-x-4 text-sm font-medium">
+            <span class="flex items-center text-emerald-400"><span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse mr-2"></span>System Live</span>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-4 space-y-6">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-xl">
+                <h2 class="text-lg font-semibold mb-4 flex items-center"><i class="fas fa-terminal mr-2 text-blue-400"></i>Agent Command</h2>
+                <textarea id="query" rows="4" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none mb-4" placeholder="e.g. Analyze NVDA stock performance."></textarea>
+                <button id="runBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                    <i class="fas fa-play"></i><span>Execute Agent</span>
+                </button>
+            </div>
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                <h2 class="text-lg font-semibold mb-4 flex items-center"><i class="fas fa-chart-line mr-2 text-emerald-400"></i>Metrics</h2>
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="bg-gray-900 p-3 rounded-lg border border-gray-700"><p class="text-xs text-gray-400">Total Runs</p><p id="totalRuns" class="text-xl font-bold">0</p></div>
+                    <div class="bg-gray-900 p-3 rounded-lg border border-gray-700"><p class="text-xs text-gray-400">Latency</p><p id="avgLatency" class="text-xl font-bold">0ms</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-8">
+            <div class="bg-gray-800 rounded-xl border border-gray-700 flex flex-col h-[600px]">
+                <div class="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                    <h2 class="font-semibold flex items-center"><i class="fas fa-microchip mr-2 text-purple-400"></i>Intelligence Output</h2>
+                    <button id="clearBtn" class="text-xs text-gray-400 hover:text-white transition-colors">Clear</button>
+                </div>
+                <div id="output" class="flex-grow p-6 overflow-y-auto font-mono text-sm space-y-4">
+                    <div class="text-gray-500 italic">Welcome. Enter a query...</div>
+                </div>
+                <div id="loader" class="hidden px-6 py-3 bg-gray-900/50 border-t border-gray-700 flex items-center space-x-3">
+                    <div class="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    <span class="text-xs text-blue-400">Processing...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        const queryInput = document.getElementById('query');
+        const runBtn = document.getElementById('runBtn');
+        const loader = document.getElementById('loader');
+
+        async function updateMetrics() {
+            try {
+                const res = await fetch('/status');
+                const data = await res.json();
+                document.getElementById('totalRuns').innerText = data.metrics.api_total_runs || 0;
+                document.getElementById('avgLatency').innerText = Math.round(data.metrics.avg_latency || 0) + 'ms';
+            } catch (e) {}
+        }
+
+        function appendLog(content, type = 'info') {
+            const div = document.createElement('div');
+            const colors = { info: 'text-gray-300', error: 'text-red-400', success: 'text-emerald-400 border-l-2 border-emerald-500 pl-3', agent: 'text-blue-300 border-l-2 border-blue-500 pl-3' };
+            div.className = colors[type] + ' mb-2';
+            div.innerHTML = content.replace(/
+/g, '<br>');
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        runBtn.onclick = async () => {
+            const query = queryInput.value.trim();
+            if (!query) return;
+            runBtn.disabled = true;
+            loader.classList.remove('hidden');
+            appendLog('> ' + query, 'info');
+            try {
+                const response = await fetch('/agent/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
+                const data = await response.json();
+                if (data.status === 'success') { appendLog(data.response, 'agent'); }
+                else { appendLog('Error: ' + data.message, 'error'); }
+            } catch (error) { appendLog('Connection Error', 'error'); }
+            finally { runBtn.disabled = false; loader.classList.add('hidden'); updateMetrics(); }
+        };
+
+        document.getElementById('clearBtn').onclick = () => { output.innerHTML = ''; };
+        setInterval(updateMetrics, 5000);
+        updateMetrics();
+    </script>
+</body>
+</html>
