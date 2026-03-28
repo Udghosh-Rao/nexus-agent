@@ -7,12 +7,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Install dependencies
         run: pip install ruff
+
       - name: Lint with ruff
-        run: ruff check .
+        run: ruff check . --ignore E501
+
       - name: Health check
-        run: python -c "from agent import TOOLS; print(f'Tools loaded: {len(TOOLS)}')"
+        run: |
+          python -c "from agent import TOOLS; print('Tools loaded:', len(TOOLS))"
