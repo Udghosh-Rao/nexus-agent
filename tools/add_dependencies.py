@@ -1,23 +1,21 @@
+import subprocess
 from typing import List
 from langchain_core.tools import tool
-import subprocess
-
 
 @tool
 def add_dependencies(dependencies: List[str]) -> str:
     """
-    Install the given Python packages into the environment.
+    Install Python packages at runtime using uv.
 
-    Parameters:
-        dependencies (List[str]):
-            A list of Python package names to install. Each name must match the 
-            corresponding package name on PyPI.
+    Parameters
+    ----------
+    dependencies : List[str]
+        List of PyPI package names to install (e.g., ['numpy', 'pandas']).
 
-    Returns:
-        str:
-            A message indicating success or failure.
+    Returns
+    -------
+    str  Success or failure message.
     """
-
     try:
         subprocess.check_call(
             ["uv", "add"] + dependencies,
@@ -25,14 +23,8 @@ def add_dependencies(dependencies: List[str]) -> str:
             stderr=subprocess.PIPE,
             text=True
         )
-        return "Successfully installed dependencies: " + ", ".join(dependencies)
-    
+        return f"Successfully installed: {', '.join(dependencies)}"
     except subprocess.CalledProcessError as e:
-        return (
-            "Dependency installation failed.\n"
-            f"Exit code: {e.returncode}\n"
-            f"Error: {e.stderr or 'No error output.'}"
-        )
-    
+        return f"Installation failed (exit {e.returncode}): {e.stderr or 'No error output.'}"
     except Exception as e:
-        return f"Unexpected error while installing dependencies: {e}" 
+        return f"Unexpected error: {e}"
