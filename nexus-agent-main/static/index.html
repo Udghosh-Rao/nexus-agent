@@ -40,62 +40,77 @@
             <div class="bg-gray-800 rounded-xl border border-gray-700 flex flex-col h-[600px]">
                 <div class="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
                     <h2 class="font-semibold flex items-center"><i class="fas fa-microchip mr-2 text-purple-400"></i>Intelligence Output</h2>
-                    <button id="clearBtn" class="text-xs text-gray-400 hover:text-white transition-colors">Clear</button>
+                    <button id="clearBtn" class="text-sm text-gray-400 hover:text-white transition-colors">Clear</button>
                 </div>
-                <div id="output" class="flex-grow p-6 overflow-y-auto font-mono text-sm space-y-4">
-                    <div class="text-gray-500 italic">Welcome. Enter a query...</div>
+                <div id="output" class="flex-1 overflow-y-auto p-6 font-mono text-sm space-y-2">
+                    <p class="text-gray-500 italic">Welcome. Enter a query...</p>
                 </div>
-                <div id="loader" class="hidden px-6 py-3 bg-gray-900/50 border-t border-gray-700 flex items-center space-x-3">
-                    <div class="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                    <span class="text-xs text-blue-400">Processing...</span>
+                <div id="loader" class="hidden px-6 py-3 border-t border-gray-700 text-emerald-400 text-sm flex items-center space-x-2">
+                    <i class="fas fa-spinner fa-spin"></i><span> Processing... </span>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        const output = document.getElementById('output');
-        const queryInput = document.getElementById('query');
-        const runBtn = document.getElementById('runBtn');
-        const loader = document.getElementById('loader');
+<script>
+const output = document.getElementById('output');
+const queryInput = document.getElementById('query');
+const runBtn = document.getElementById('runBtn');
+const loader = document.getElementById('loader');
 
-        async function updateMetrics() {
-            try {
-                const res = await fetch('/status');
-                const data = await res.json();
-                document.getElementById('totalRuns').innerText = data.metrics.api_total_runs || 0;
-                document.getElementById('avgLatency').innerText = Math.round(data.metrics.avg_latency || 0) + 'ms';
-            } catch (e) {}
+async function updateMetrics() {
+    try {
+        const res = await fetch('/status');
+        const data = await res.json();
+        document.getElementById('totalRuns').innerText = data.metrics.api_total_runs || 0;
+        document.getElementById('avgLatency').innerText = Math.round(data.metrics.avg_latency || 0) + 'ms';
+    } catch (e) {}
+}
+
+function appendLog(content, type = 'info') {
+    const div = document.createElement('div');
+    const colors = {
+        info: 'text-gray-300',
+        error: 'text-red-400',
+        success: 'text-emerald-400 border-l-2 border-emerald-500 pl-3',
+        agent: 'text-blue-300 border-l-2 border-blue-500 pl-3'
+    };
+    div.className = colors[type] + ' mb-2';
+    div.innerHTML = content.replace(/\n/g, '<br>');
+    output.appendChild(div);
+    output.scrollTop = output.scrollHeight;
+}
+
+runBtn.onclick = async () => {
+    const query = queryInput.value.trim();
+    if (!query) return;
+    runBtn.disabled = true;
+    loader.classList.remove('hidden');
+    appendLog('> ' + query, 'info');
+    try {
+        const response = await fetch('/agent/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: query, secret: '' })
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            appendLog(data.response, 'agent');
+        } else {
+            appendLog('Error: ' + (data.message || data.detail || 'Unknown error'), 'error');
         }
-
-        function appendLog(content, type = 'info') {
-            const div = document.createElement('div');
-            const colors = { info: 'text-gray-300', error: 'text-red-400', success: 'text-emerald-400 border-l-2 border-emerald-500 pl-3', agent: 'text-blue-300 border-l-2 border-blue-500 pl-3' };
-            div.className = colors[type] + ' mb-2';
-            div.innerHTML = content.replace(/
-/g, '<br>');
-            output.appendChild(div);
-            output.scrollTop = output.scrollHeight;
-        }
-
-        runBtn.onclick = async () => {
-            const query = queryInput.value.trim();
-            if (!query) return;
-            runBtn.disabled = true;
-            loader.classList.remove('hidden');
-            appendLog('> ' + query, 'info');
-            try {
-                const response = await fetch('/agent/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
-                const data = await response.json();
-                if (data.status === 'success') { appendLog(data.response, 'agent'); }
-                else { appendLog('Error: ' + data.message, 'error'); }
-            } catch (error) { appendLog('Connection Error', 'error'); }
-            finally { runBtn.disabled = false; loader.classList.add('hidden'); updateMetrics(); }
-        };
-
-        document.getElementById('clearBtn').onclick = () => { output.innerHTML = ''; };
-        setInterval(updateMetrics, 5000);
+    } catch (error) {
+        appendLog('Connection Error: ' + error.message, 'error');
+    } finally {
+        runBtn.disabled = false;
+        loader.classList.add('hidden');
         updateMetrics();
-    </script>
+    }
+};
+
+document.getElementById('clearBtn').onclick = () => { output.innerHTML = ''; };
+setInterval(updateMetrics, 5000);
+updateMetrics();
+</script>
 </body>
 </html>
