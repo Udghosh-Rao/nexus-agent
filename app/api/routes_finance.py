@@ -23,6 +23,7 @@ def analyze_finance(payload: FinanceAnalyzeRequest):
 
 @router.post("/analyze/stock")
 def analyze_stock_compat(payload: FinanceAnalyzeRequest):
+    """Backward-compatible alias for /analyze/finance."""
     return analyze_finance(payload)
 
 

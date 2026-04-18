@@ -12,6 +12,11 @@ def test_signal_classification_bearish():
     assert signal == "bearish"
 
 
+def test_signal_classification_boundaries_default_to_neutral():
+    signal = classify_signal(ma_20=100, ma_50=100, rsi_14=55, momentum_10d=0)
+    assert signal == "neutral"
+
+
 def test_transaction_risk_model_outputs_expected_keys():
     model = get_transaction_risk_model()
     result = model.predict(

@@ -33,7 +33,11 @@ def run_agent_endpoint(payload: AgentRunRequest):
     if payload.secret != settings.secret:
         raise HTTPException(status_code=403, detail="Invalid secret.")
 
-    result = run_agent(payload.prompt)
+    try:
+        result = run_agent(payload.prompt)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Agent execution failed: {exc}") from exc
+
     messages = result.get("messages", []) if isinstance(result, dict) else []
     if not messages:
         return {"status": "ok", "result": "No output"}

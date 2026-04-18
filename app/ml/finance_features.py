@@ -4,6 +4,9 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
+# Standard annualization constant for equity markets.
+TRADING_DAYS_PER_YEAR = 252
+
 
 def _rsi(series: pd.Series, period: int = 14) -> pd.Series:
     delta = series.diff()
@@ -40,7 +43,9 @@ def build_finance_feature_frame(df: pd.DataFrame) -> pd.DataFrame:
 
     frame = df.copy()
     frame["return_1d"] = close.pct_change()
-    frame["rolling_volatility_20d"] = frame["return_1d"].rolling(20).std() * np.sqrt(252)
+    frame["rolling_volatility_20d"] = (
+        frame["return_1d"].rolling(20).std() * np.sqrt(TRADING_DAYS_PER_YEAR)
+    )
     frame["ma_20"] = close.rolling(20).mean()
     frame["ma_50"] = close.rolling(50).mean()
     frame["rsi_14"] = _rsi(close)

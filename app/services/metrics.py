@@ -4,6 +4,8 @@ from typing import Any
 
 
 class MetricsStore:
+    MAX_LATENCY_SAMPLES = 2000
+
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._counters: dict[str, int] = defaultdict(int)
@@ -17,8 +19,8 @@ class MetricsStore:
         with self._lock:
             bucket = self._latency[route]
             bucket.append(latency_ms)
-            if len(bucket) > 2000:
-                del bucket[: len(bucket) - 2000]
+            if len(bucket) > self.MAX_LATENCY_SAMPLES:
+                del bucket[: len(bucket) - self.MAX_LATENCY_SAMPLES]
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:

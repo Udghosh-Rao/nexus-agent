@@ -15,6 +15,7 @@ except Exception:
 
 
 def get_groq_llm(temperature: float = 0):
+    """Return a configured ChatGroq instance, or None when Groq is unavailable."""
     if not settings.groq_api_key or ChatGroq is None:
         return None
     return ChatGroq(
@@ -33,11 +34,13 @@ def explain_metrics(kind: str, computed_payload: dict[str, Any]) -> dict[str, An
             "source": "fallback",
         }
 
-    prompt = (
-        "You are a financial/quant AI assistant. Use only the provided computed metrics. "
-        "Do not invent values. Return strict JSON with keys: summary, rationale. "
-        f"Analysis kind: {kind}. Metrics: {json.dumps(computed_payload, default=str)}"
-    )
+    prompt = f"""
+You are a financial/quant AI assistant.
+Use only the provided computed metrics and never invent values.
+Return strict JSON with keys: summary, rationale.
+Analysis kind: {kind}
+Metrics: {json.dumps(computed_payload, default=str)}
+""".strip()
 
     try:
         response = llm.invoke(prompt)

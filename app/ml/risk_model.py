@@ -5,6 +5,11 @@ import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
+# Expected anomaly proportions for transaction-like and market feature distributions.
+TRANSACTION_CONTAMINATION = 0.08
+MARKET_CONTAMINATION = 0.10
+CONFIDENCE_SCALE = 2.0
+
 
 class TransactionRiskModel:
     feature_names = [
@@ -20,7 +25,9 @@ class TransactionRiskModel:
 
     def __init__(self) -> None:
         self.scaler = StandardScaler()
-        self.model = IsolationForest(contamination=0.08, random_state=42)
+        self.model = IsolationForest(
+            contamination=TRANSACTION_CONTAMINATION, random_state=42
+        )
         self._is_fitted = False
 
     def _generate_baseline(self, n: int = 1200) -> pd.DataFrame:
@@ -79,7 +86,7 @@ class TransactionRiskModel:
         else:
             label = "low_risk"
 
-        confidence = min(1.0, abs(anomaly_score) * 2.0)
+        confidence = min(1.0, abs(anomaly_score) * CONFIDENCE_SCALE)
 
         return {
             "features_used": frame.iloc[0].to_dict(),
@@ -111,7 +118,7 @@ def detect_market_anomaly(feature_frame: pd.DataFrame) -> dict:
     scaler = StandardScaler()
     scaled = scaler.fit_transform(frame)
 
-    model = IsolationForest(contamination=0.1, random_state=42)
+    model = IsolationForest(contamination=MARKET_CONTAMINATION, random_state=42)
     model.fit(scaled)
 
     latest_scaled = scaled[-1].reshape(1, -1)
@@ -126,7 +133,7 @@ def detect_market_anomaly(feature_frame: pd.DataFrame) -> dict:
     else:
         label = "low_risk"
 
-    confidence = min(1.0, abs(anomaly_score) * 2.0)
+    confidence = min(1.0, abs(anomaly_score) * CONFIDENCE_SCALE)
 
     return {
         "anomaly_score": round(anomaly_score, 6),

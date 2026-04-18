@@ -149,6 +149,7 @@ def _route_after_llm(state: AgentState):
 
 def _tool_error_handler(exc: Exception) -> dict:
     metrics_store.inc("failed_runs")
+    metrics_store.inc("tool_execution_failures")
     logger.warning("tool_execution_failed reason=%s", exc)
     return {"error": f"Tool execution failed: {exc}"}
 
@@ -189,6 +190,7 @@ graph.add_edge("unsupported", END)
 agent_app = graph.compile()
 
 
+# System constraint for grounded tool-first behavior in autonomous runs.
 SYSTEM_PROMPT = (
     "You are an autonomous AI quant research assistant. Prefer computed outputs from tools and avoid "
     "hallucinated metrics. Use finance tools for market/risk tasks; use general tools only when needed."
