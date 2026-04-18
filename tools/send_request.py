@@ -1,17 +1,23 @@
-import requests, json, os, time
+import json
+import os
+import time
 from collections import defaultdict
 from typing import Any, Dict, Optional
+
+import requests
 from langchain_core.tools import tool
+
 from shared_store import BASE64_STORE, url_time
 
-cache       = defaultdict(int)
+cache = defaultdict(int)
 RETRY_LIMIT = 4
+
 
 @tool
 def post_request(
     url: str,
     payload: Dict[str, Any],
-    headers: Optional[Dict[str, str]] = None
+    headers: Optional[Dict[str, str]] = None,
 ) -> Any:
     """
     Send an HTTP POST request. Handles Base64 placeholder resolution,
@@ -27,7 +33,6 @@ def post_request(
     -------
     Any  Server response (parsed JSON) or raw text on failure.
     """
-    # Resolve Base64 placeholder if present
     ans = payload.get("answer", "")
     if isinstance(ans, str) and ans.startswith("BASE64_KEY:"):
         key = ans.split(":", 1)[1]
@@ -39,10 +44,9 @@ def post_request(
         cur_url = os.getenv("url", "")
         cache[cur_url] += 1
 
-        # Log a safe preview (don't log full Base64)
         preview = {
             "answer": str(payload.get("answer", ""))[:80] + "...",
-            "email":  payload.get("email", ""),
+            "email": payload.get("email", ""),
         }
         print(f"\nPOST → {url}\nPayload preview: {json.dumps(preview, indent=2)}")
 
@@ -60,15 +64,15 @@ def post_request(
             url_time[next_url] = time.time()
 
         correct = data.get("correct")
-        delay   = time.time() - url_time.get(cur_url, time.time())
-        offset  = os.getenv("offset", "0")
+        delay = time.time() - url_time.get(cur_url, time.time())
+        offset = os.getenv("offset", "0")
 
         if not correct:
             cur_time = time.time()
-            timeout  = (
-                cache[cur_url] >= RETRY_LIMIT or
-                delay >= 180 or
-                (offset != "0" and (cur_time - float(offset)) > 90)
+            timeout = (
+                cache[cur_url] >= RETRY_LIMIT
+                or delay >= 180
+                or (offset != "0" and (cur_time - float(offset)) > 90)
             )
             if timeout:
                 print("Timeout reached — moving to next question.")

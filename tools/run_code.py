@@ -1,7 +1,10 @@
-import subprocess, os
+import os
+import subprocess
+
 from langchain_core.tools import tool
 
 OUTPUT_LIMIT = 10_000
+
 
 @tool
 def run_code(code: str) -> dict:
@@ -34,7 +37,7 @@ def run_code(code: str) -> dict:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            cwd="LLMFiles"
+            cwd="LLMFiles",
         )
         stdout, stderr = proc.communicate()
 

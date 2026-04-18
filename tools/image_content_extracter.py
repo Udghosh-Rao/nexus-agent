@@ -1,8 +1,10 @@
-import pytesseract
-from PIL import Image
-from io import BytesIO
 import base64
 import os
+from io import BytesIO
+
+import pytesseract
+from langchain_core.tools import tool
+from PIL import Image
 
 
 def load_image(image_input):
@@ -12,13 +14,14 @@ def load_image(image_input):
     if isinstance(image_input, Image.Image):
         return image_input.convert("RGB")
     if isinstance(image_input, str):
-        if image_input.startswith("data:"):   # base64 data URL
+        if image_input.startswith("data:"):
             _, b64 = image_input.split(",", 1)
             return Image.open(BytesIO(base64.b64decode(b64))).convert("RGB")
         return Image.open(os.path.join("LLMFiles", image_input)).convert("RGB")
     raise ValueError("Unsupported image input type")
 
 
+@tool
 def ocr_image_tool(payload: dict) -> dict:
     """
     Extract text from an image using pytesseract OCR.
@@ -34,8 +37,6 @@ def ocr_image_tool(payload: dict) -> dict:
         "text": "<extracted text>",
         "engine": "pytesseract"
     }
-
-    Use this tool when the user wants to read or extract text from an image.
     """
     try:
         image_data = payload["image"]
@@ -46,7 +47,7 @@ def ocr_image_tool(payload: dict) -> dict:
 
         return {
             "text": text.strip(),
-            "engine": "pytesseract"
+            "engine": "pytesseract",
         }
     except Exception as e:
-        return f"Error occurred: {e}"
+        return {"error": f"Error occurred: {e}"}

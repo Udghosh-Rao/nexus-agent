@@ -1,6 +1,11 @@
-import base64, uuid, os
+import base64
+import os
+import uuid
+
 from langchain_core.tools import tool
+
 from shared_store import BASE64_STORE
+
 
 @tool
 def encode_image_to_base64(image_path: str) -> str:
